@@ -5,4 +5,5 @@ library Errors {
     error MembershipFeeNotMet();
     error AlreadyMember();
     error NotAMember();
+    error AmountExceedsDaoBalance();
 }
