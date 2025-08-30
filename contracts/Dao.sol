@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
-import "../interfaces/IDao.sol";
 
+import "../interfaces/IDao.sol";
 import "../libraries/Errors.sol";
 
 contract Dao is IDao {
@@ -27,8 +27,12 @@ contract Dao is IDao {
     }
 
 
-    function createProposal(string memory _title, string memory _description) external{
+    function createProposal(string memory _title, string memory _description, proposalType _type, uint256 _amount) external{
         require(members[msg.sender].isMember == true,Errors.NotAMember());
+        if(_type == proposalType.LOAN){
+            require(_amount <= address(this).balance,Errors.AmountExceedsDaoBalance());
+        }
+
         Proposal memory newProposal;
         newProposal.title = _title;
         newProposal.description = _description;
@@ -36,8 +40,53 @@ contract Dao is IDao {
         newProposal.startDate = block.timestamp;
         proposals[uuid] = newProposal;
         proposalCreator[uuid] = msg.sender;
+        newProposal.pType = _type;
+        newProposal.amount = _amount;
+        newProposal.status = ProposalStatus.PENDING;
         uuid++;
-        emit ProposalCreated(uuid,_title);
+        emit ProposalCreated(uuid,_title, _type);
     }
+
+    // function withdrawAndExitDao() external{
+    //     require(members[msg.sender].isMember == true,Errors.NotAMember());
+    //     uint256 amountToWithdraw = MEMBERSHIP_FEE;
+    //     members[msg.sender].isMember = false;
+    //     members[msg.sender].memberAddress = address(0);
+    //     members[msg.sender].joinDate = 0;
+    //     members[msg.sender].totalAmountProposals = 0;
+
+    //     // Remove from membersList
+    //     for (uint i = 0; i < membersList.length; i++) {
+    //         if (membersList[i] == msg.sender) {
+    //             membersList[i] = membersList[membersList.length - 1];
+    //             membersList.pop();
+    //             break;
+    //         }
+    //     }
+
+    //     payable(msg.sender).transfer(amountToWithdraw);
+    //     emit stakeWithdrawnAndNotMemberAnymore(msg.sender, amountToWithdraw);
+    // }
+
+    function withdrawMembership() external {
+        require(members[msg.sender].isMember == true, Errors.NotAMember());
+        members[msg.sender].isMember = false;
+        members[msg.sender].memberAddress = address(0);
+        members[msg.sender].joinDate = 0;
+        members[msg.sender].totalAmountProposals = 0;
+
+        // Remove from membersList
+        for (uint i = 0; i < membersList.length; i++) {
+            if (membersList[i] == msg.sender) {
+                membersList[i] = membersList[membersList.length - 1];
+                membersList.pop();
+                break;
+            }
+        }
+
+        emit withdrawMembership(msg.sender);
+    }
+
+    
 
 }
